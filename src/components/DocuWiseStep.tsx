@@ -165,6 +165,7 @@ export function DocuWiseStep({
           title="Document Helper"
           subtitle="Ask questions while filling the form"
           placeholder="Ask about the document fields..."
+          showDeepResearch
         />
       </div>
     </div>

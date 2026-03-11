@@ -70,6 +70,7 @@ export function EditingStep({
           title="Legal Editor"
           subtitle="Request changes or ask about clauses"
           placeholder="Ask about the document or request changes..."
+          showDeepResearch
           actions={
             <div className="flex items-center gap-2">
               <button
