@@ -6,10 +6,20 @@ interface StepIndicatorProps {
   onBack?: () => void;
 }
 
-export function StepIndicator({ currentStep, steps }: StepIndicatorProps) {
+export function StepIndicator({ currentStep, steps, onBack }: StepIndicatorProps) {
   return (
     <div className="w-full bg-card border-b border-border px-6 py-4">
-      <div className="max-w-3xl mx-auto flex items-center justify-between">
+      <div className="max-w-3xl mx-auto flex items-center gap-4">
+        {currentStep > 1 && onBack && (
+          <button
+            onClick={onBack}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Back
+          </button>
+        )}
+        <div className="flex items-center justify-between flex-1">
         {steps.map((label, i) => {
           const stepNum = i + 1;
           const isActive = stepNum === currentStep;
