@@ -112,7 +112,7 @@ export function ChatPanel({
           <div className="flex justify-start">
             <div className="max-w-[85%] rounded-2xl rounded-bl-md px-4 py-3 text-sm leading-relaxed bg-chat-ai text-chat-foreground">
               <div className="prose prose-sm prose-invert max-w-none [&_p]:mb-2 [&_p:last-child]:mb-0">
-                <ReactMarkdown>{streamingContent}</ReactMarkdown>
+                <ReactMarkdown>{streamingContent.replace(/```edit[\s\S]*?```/g, '✏️ *Applying edit...*').replace(/```edit[\s\S]*$/g, '✏️ *Preparing edit...*')}</ReactMarkdown>
               </div>
             </div>
           </div>
