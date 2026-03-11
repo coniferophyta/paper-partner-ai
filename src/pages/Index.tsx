@@ -70,32 +70,58 @@ const Index = () => {
 
       let assistantSoFar = '';
 
-      try {
-        await streamChat({
-          documentText: documentText || undefined,
-          deepResearch,
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert legal AI assistant specializing in ${docType.toUpperCase()} documents and contract law. Your role:
+      // Build system prompt — include document HTML in step 3 so AI can edit it
+      const systemContent = `You are an expert legal AI assistant specializing in ${docType.toUpperCase()} documents and contract law. Your role:
 - Explain legal terminology in plain language
 - Advise on clause wording, enforceability, and common pitfalls
 - Flag potential legal risks or missing protections
 - Suggest standard legal provisions when relevant
 - Always note that you provide legal information, not legal advice, and recommend consulting a licensed attorney for binding decisions
-Be concise, professional, and precise. Use legal terminology where appropriate but always explain it.`,
-            },
+Be concise, professional, and precise. Use legal terminology where appropriate but always explain it.
+
+${documentHtml ? `IMPORTANT — DOCUMENT EDITING CAPABILITY:
+You have access to the current document HTML below. When the user asks you to make changes, edits, additions, or deletions to the document, you MUST include the FULL updated document HTML wrapped in <document-update> tags in your response. Only include the inner HTML content (what goes inside the document body), not full HTML boilerplate.
+
+Example response when editing:
+"I've updated the confidentiality term from 3 years to 5 years."
+<document-update>
+...full updated document HTML here...
+</document-update>
+
+CURRENT DOCUMENT HTML:
+${documentHtml}` : ''}`;
+
+      try {
+        await streamChat({
+          documentText: documentText || undefined,
+          deepResearch,
+          messages: [
+            { role: 'system', content: systemContent },
             ...allMessages,
           ],
           onDelta: (chunk) => {
             assistantSoFar += chunk;
-            setStreamingContent(assistantSoFar);
+            // Show streaming content but strip document-update tags from display
+            const displayContent = assistantSoFar.replace(/<document-update>[\s\S]*?<\/document-update>/g, '').replace(/<document-update>[\s\S]*/g, '');
+            setStreamingContent(displayContent.trim());
           },
           onDone: () => {
             setStreamingContent('');
+
+            // Extract document update if present
+            const updateMatch = assistantSoFar.match(/<document-update>([\s\S]*?)<\/document-update>/);
+            if (updateMatch) {
+              const newHtml = updateMatch[1].trim();
+              setDocumentHtml(newHtml);
+              toast.success('Document updated');
+            }
+
+            // Remove the tags from the displayed message
+            const cleanContent = assistantSoFar.replace(/<document-update>[\s\S]*?<\/document-update>/g, '').trim();
+
             setChatMessages((prev) => [
               ...prev,
-              { role: 'assistant', content: assistantSoFar },
+              { role: 'assistant', content: cleanContent },
             ]);
             setIsChatLoading(false);
           },
@@ -107,7 +133,7 @@ Be concise, professional, and precise. Use legal terminology where appropriate b
         setIsChatLoading(false);
       }
     },
-    [chatMessages, docType, documentText]
+    [chatMessages, docType, documentText, documentHtml]
   );
 
   const handleSubmitForReview = useCallback(() => {
