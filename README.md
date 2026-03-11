@@ -1,5 +1,7 @@
 # Paper Partner AI
 
+🌐 **[Live Demo](https://paper-partner-ai.lovable.app)**
+
 An AI-powered legal document assistant that helps you create, edit, and refine legal documents with an intelligent chatbot co-pilot.
 
 ![Paper Partner AI](https://img.shields.io/badge/React-18-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Vite](https://img.shields.io/badge/Vite-5-purple) ![Tailwind](https://img.shields.io/badge/TailwindCSS-3-teal)
