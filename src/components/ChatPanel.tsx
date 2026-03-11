@@ -28,6 +28,7 @@ export function ChatPanel({
   title = 'AI Assistant',
   subtitle = 'Ask questions or request changes',
   actions,
+  showDeepResearch = false,
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
