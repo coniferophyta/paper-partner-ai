@@ -56,6 +56,7 @@ export function StepIndicator({ currentStep, steps, onBack }: StepIndicatorProps
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
