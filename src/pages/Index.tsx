@@ -72,6 +72,7 @@ const Index = () => {
 
       try {
         await streamChat({
+          documentText: documentText || undefined,
           messages: [
             {
               role: 'system',
