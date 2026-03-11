@@ -1,8 +1,9 @@
-import { Check } from 'lucide-react';
+import { Check, ChevronLeft } from 'lucide-react';
 
 interface StepIndicatorProps {
   currentStep: number;
   steps: string[];
+  onBack?: () => void;
 }
 
 export function StepIndicator({ currentStep, steps }: StepIndicatorProps) {
