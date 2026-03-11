@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import mammoth from 'mammoth';
 import { StepIndicator } from '@/components/StepIndicator';
 import { LandingStep } from '@/components/LandingStep';
 import { DocuWiseStep } from '@/components/DocuWiseStep';
@@ -23,20 +24,27 @@ const Index = () => {
   const [documentHtml, setDocumentHtml] = useState('');
   const [documentText, setDocumentText] = useState('');
   const [fileName, setFileName] = useState('');
+  const docBytesRef = useRef<ArrayBuffer | null>(null);
 
   const handleSelectDocType = useCallback((type: string) => {
     setDocType(type);
     setCurrentStep(2);
   }, []);
 
-  const handleDocuWiseComplete = useCallback(() => {
-    // TODO: Fetch generated docx from DocuWise, parse to HTML/text
-    // For now, set placeholder content
-    setDocumentHtml('<h1>Non-Disclosure Agreement</h1><p>This agreement is entered into by and between the parties identified herein...</p><p><em>Document content will be populated from DocuWise output.</em></p>');
-    setDocumentText('Non-Disclosure Agreement\nThis agreement is entered into by and between the parties identified herein...');
-    setFileName('NDA_Document.docx');
-    setCurrentStep(3);
-    toast.success('Document loaded — ready for editing');
+  const handleDocuWiseComplete = useCallback(async (docBytes: ArrayBuffer, name: string) => {
+    try {
+      docBytesRef.current = docBytes;
+      const htmlResult = await mammoth.convertToHtml({ arrayBuffer: docBytes });
+      const textResult = await mammoth.extractRawText({ arrayBuffer: docBytes });
+      setDocumentHtml(htmlResult.value);
+      setDocumentText(textResult.value);
+      setFileName(name);
+      setCurrentStep(3);
+      toast.success(`Document loaded — ready for editing`);
+    } catch (err) {
+      console.error('Failed to parse docx:', err);
+      toast.error('Failed to parse the document.');
+    }
   }, []);
 
   const handleSendChatMessage = useCallback(
