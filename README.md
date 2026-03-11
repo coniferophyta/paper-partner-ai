@@ -1,73 +1,73 @@
-# Welcome to your Lovable project
+# Paper Partner AI
 
-## Project info
+An AI-powered legal document assistant that helps you create, edit, and refine legal documents with an intelligent chatbot co-pilot.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+![Paper Partner AI](https://img.shields.io/badge/React-18-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Vite](https://img.shields.io/badge/Vite-5-purple) ![Tailwind](https://img.shields.io/badge/TailwindCSS-3-teal)
 
-## How can I edit this code?
+## ✨ Features
 
-There are several ways of editing your application.
+- **📄 Document Generation** — Choose from multiple legal document types (NDA, Employment Agreement, Service Agreement, etc.) and fill in structured forms to generate professional DOCX files
+- **🤖 AI Chat Co-pilot** — Context-aware legal AI assistant that can explain clauses, suggest improvements, and flag potential risks
+- **✏️ Live Document Editing** — AI makes surgical, paragraph-level edits to your document in real-time while preserving all original formatting
+- **🔍 Deep Research Mode** — Toggle deep research for thorough legal analysis powered by web search
+- **📥 DOCX Export** — Download your edited document as a properly formatted Word file with all changes applied to the original XML structure
+- **📊 Change Tracking** — Visual diff of all AI-made edits with old vs. new text comparison
 
-**Use Lovable**
+## 🛠️ Tech Stack
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- **Frontend:** React 18, TypeScript, Vite
+- **Styling:** Tailwind CSS, shadcn/ui
+- **Document Processing:** Mammoth.js (DOCX → HTML), JSZip (surgical XML editing)
+- **Backend:** Lovable Cloud (Edge Functions for AI chat, document generation, and browser research)
+- **AI:** Streaming chat with contextual document awareness
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🚀 Getting Started
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
+```bash
+# Clone the repository
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Navigate to the project
+cd paper-partner-ai
 
-# Step 3: Install the necessary dependencies.
-npm i
+# Install dependencies
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 📁 Project Structure
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+src/
+├── components/
+│   ├── ChatPanel.tsx        # AI chat interface with markdown rendering
+│   ├── DocuWiseStep.tsx     # Document form + generation step
+│   ├── DocumentPreview.tsx  # Live DOCX preview with change tracking
+│   ├── EditingStep.tsx      # Document editing workspace
+│   ├── LandingStep.tsx      # Document type selection
+│   ├── ReviewStep.tsx       # Final review before export
+│   └── StepIndicator.tsx    # Progress stepper
+├── lib/
+│   ├── chat-service.ts      # Streaming AI chat client
+│   ├── doc-utils.ts         # DOCX parsing & XML manipulation
+│   └── export-utils.ts      # Document export with tracked changes
+├── pages/
+│   └── Index.tsx            # Main app orchestrator
+└── supabase/functions/
+    ├── chat/                # AI chat edge function
+    ├── docuwise-document/   # Document generation edge function
+    └── browser-research/    # Deep research edge function
+```
 
-**Use GitHub Codespaces**
+## 🔄 Workflow
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. **Choose Type** → Select your legal document type
+2. **Fill Details** → Complete the structured form with AI guidance
+3. **Edit & Refine** → Review the generated document, ask the AI to make changes
+4. **Review & Export** → Final review, then download as `.docx`
 
-## What technologies are used for this project?
+## 📝 License
 
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+This project is private.
