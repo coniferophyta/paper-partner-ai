@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import mammoth from 'mammoth';
+import { asBlob } from 'html-docx-js-typescript';
 import { StepIndicator } from '@/components/StepIndicator';
 import { LandingStep } from '@/components/LandingStep';
 import { DocuWiseStep } from '@/components/DocuWiseStep';
