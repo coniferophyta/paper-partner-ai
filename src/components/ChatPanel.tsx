@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Globe } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 export interface ChatMessage {
@@ -11,11 +11,12 @@ interface ChatPanelProps {
   messages: ChatMessage[];
   isLoading: boolean;
   streamingContent: string;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, deepResearch?: boolean) => void;
   placeholder?: string;
   title?: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  showDeepResearch?: boolean;
 }
 
 export function ChatPanel({
@@ -27,8 +28,10 @@ export function ChatPanel({
   title = 'AI Assistant',
   subtitle = 'Ask questions or request changes',
   actions,
+  showDeepResearch = false,
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
+  const [deepResearch, setDeepResearch] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -41,8 +44,9 @@ export function ChatPanel({
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
-    onSendMessage(input.trim());
+    onSendMessage(input.trim(), deepResearch);
     setInput('');
+    setDeepResearch(false);
     if (inputRef.current) inputRef.current.style.height = 'auto';
   };
 
@@ -127,24 +131,41 @@ export function ChatPanel({
 
       {/* Input */}
       <div className="p-4 border-t border-chat-border">
-        <form onSubmit={handleSubmit} className="flex items-end gap-2">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={isLoading}
-            rows={1}
-            className="flex-1 resize-none bg-chat-input text-chat-foreground text-sm rounded-xl px-4 py-3 placeholder:text-chat-foreground/30 focus:outline-none focus:ring-1 focus:ring-chat-accent disabled:opacity-40 border border-chat-border"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className="p-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            <Send className="w-4 h-4" />
-          </button>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+              disabled={isLoading}
+              rows={1}
+              className="flex-1 resize-none bg-chat-input text-chat-foreground text-sm rounded-xl px-4 py-3 placeholder:text-chat-foreground/30 focus:outline-none focus:ring-1 focus:ring-chat-accent disabled:opacity-40 border border-chat-border"
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              className="p-3 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+          {showDeepResearch && (
+            <button
+              type="button"
+              onClick={() => setDeepResearch(!deepResearch)}
+              className={`flex items-center gap-1.5 self-start px-2.5 py-1 text-xs rounded-lg transition-colors ${
+                deepResearch
+                  ? 'bg-primary/15 text-primary border border-primary/30'
+                  : 'text-chat-foreground/40 hover:text-chat-foreground/60 border border-transparent'
+              }`}
+            >
+              <Globe className="w-3 h-3" />
+              Deep Research
+              {deepResearch && <span className="text-[10px] opacity-60">(slower, browses web)</span>}
+            </button>
+          )}
         </form>
       </div>
     </div>

@@ -5,13 +5,15 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 interface StreamChatOptions {
   messages: ChatMessage[];
   documentText?: string;
+  deepResearch?: boolean;
   onDelta: (text: string) => void;
   onDone: () => void;
 }
 
-export async function streamChat({ messages, documentText, onDelta, onDone }: StreamChatOptions) {
+export async function streamChat({ messages, documentText, deepResearch, onDelta, onDone }: StreamChatOptions) {
   const body: any = { messages };
   if (documentText) body.documentText = documentText;
+  if (deepResearch) body.deepResearch = true;
 
   const resp = await fetch(CHAT_URL, {
     method: 'POST',

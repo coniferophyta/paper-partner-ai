@@ -124,6 +124,83 @@ async function extractReferences(text: string, apiKey: string): Promise<string> 
   }
 }
 
+const BU_API_BASE = "https://api.browser-use.com/api/v2";
+
+const LEGAL_SITES = [
+  { url: "https://cms.law/en/int/expert-guides/cms-expert-guide-to-trade-secrets/slovenia", name: "CMS Expert Guide - Trade Secrets (Slovenia)" },
+  { url: "https://www.pravnisos.si/pravno-svetovanje-pomoc-in-nasveti/", name: "PravniSOS - Legal Advice (Slovenia)" },
+  { url: "https://eda.europa.eu/what-we-do/industry-engagement/directories/library/", name: "EDA Library" },
+];
+
+async function browserResearch(query: string, apiKey: string): Promise<string> {
+  try {
+    // Pick 1-2 most relevant sites based on query to save time/cost
+    const taskDescription = `You are a legal researcher. Visit these sites and find information relevant to: "${query}"
+
+Sites to check:
+${LEGAL_SITES.map((s) => `- ${s.url} (${s.name})`).join("\n")}
+
+Instructions:
+1. Visit each site
+2. Look for content, articles, or PDFs relevant to the query
+3. Click into relevant articles/links if needed
+4. Extract key legal information, citing the source URL
+5. Note any relevant PDF documents with their download URLs
+6. Return a structured summary of findings from each site`;
+
+    const response = await fetch(`${BU_API_BASE}/tasks`, {
+      method: "POST",
+      headers: {
+        "x-api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ task: taskDescription }),
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      console.error("BU task creation failed:", response.status, err);
+      return "";
+    }
+
+    const taskData = await response.json();
+    const taskId = taskData.id;
+    console.log(`Created BU task: ${taskId}`);
+
+    // Poll for completion (max 90s)
+    const start = Date.now();
+    while (Date.now() - start < 90000) {
+      await new Promise((r) => setTimeout(r, 3000));
+
+      const statusResp = await fetch(`${BU_API_BASE}/tasks/${taskId}`, {
+        headers: { "x-api-key": apiKey },
+      });
+
+      if (!statusResp.ok) {
+        const err = await statusResp.text();
+        console.error("BU poll failed:", err);
+        return "";
+      }
+
+      const statusData = await statusResp.json();
+
+      if (statusData.status === "completed" || statusData.status === "finished") {
+        return statusData.output || statusData.result || "";
+      }
+      if (statusData.status === "failed" || statusData.status === "error") {
+        console.error("BU task failed:", statusData.error);
+        return "";
+      }
+    }
+
+    console.error("BU task timed out");
+    return "";
+  } catch (err) {
+    console.error("Browser research error:", err);
+    return "";
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -136,27 +213,38 @@ serve(async (req) => {
     }
 
     const TFL_API_KEY = Deno.env.get("TFL_API_KEY");
+    const BROWSER_USE_API_KEY = Deno.env.get("BROWSER_USE_API_KEY");
 
-    const { messages, stream = true, documentText } = await req.json();
+    const { messages, stream = true, documentText, deepResearch = false } = await req.json();
 
-    // Extract the latest user message for TFL search
+    // Extract the latest user message for searches
     const userMessages = messages.filter((m: any) => m.role === "user");
     const latestUserMessage = userMessages[userMessages.length - 1]?.content || "";
 
-    // Search TFL for relevant legal context
-    let tflContext = "";
-    let refContext = "";
+    // Run all research in parallel
+    const researchPromises: Promise<any>[] = [];
 
     if (TFL_API_KEY && latestUserMessage) {
-      const [searchResults, docRefs] = await Promise.all([
-        searchTFL(latestUserMessage, TFL_API_KEY),
-        documentText ? extractReferences(documentText.slice(0, 3000), TFL_API_KEY) : Promise.resolve(""),
-      ]);
-      tflContext = searchResults;
-      refContext = docRefs;
+      researchPromises.push(searchTFL(latestUserMessage, TFL_API_KEY));
+      if (documentText) {
+        researchPromises.push(extractReferences(documentText.slice(0, 3000), TFL_API_KEY));
+      } else {
+        researchPromises.push(Promise.resolve(""));
+      }
+    } else {
+      researchPromises.push(Promise.resolve(""), Promise.resolve(""));
     }
 
-    // Enrich the system message with TFL context
+    // Browser Use research (only when deepResearch is enabled)
+    if (BROWSER_USE_API_KEY && latestUserMessage && deepResearch) {
+      researchPromises.push(browserResearch(latestUserMessage, BROWSER_USE_API_KEY));
+    } else {
+      researchPromises.push(Promise.resolve(""));
+    }
+
+    const [tflContext, refContext, browserContext] = await Promise.all(researchPromises);
+
+    // Enrich the system message with all context
     const enrichedMessages = messages.map((msg: any) => {
       if (msg.role === "system") {
         let enrichedContent = msg.content;
@@ -170,6 +258,10 @@ serve(async (req) => {
 
         if (refContext) {
           enrichedContent += refContext;
+        }
+
+        if (browserContext) {
+          enrichedContent += `\n\n---\nADDITIONAL LEGAL RESEARCH FROM WEB SOURCES:\n${browserContext}\n\nThese are findings from browsing legal reference sites. Cite the source URLs when using this information.`;
         }
 
         return { ...msg, content: enrichedContent };

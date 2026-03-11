@@ -7,7 +7,7 @@ interface EditingStepProps {
   chatMessages: ChatMessage[];
   isChatLoading: boolean;
   streamingContent: string;
-  onSendChatMessage: (message: string) => void;
+  onSendChatMessage: (message: string, deepResearch?: boolean) => void;
   onSubmitForReview: () => void;
   onExport: () => void;
 }
@@ -70,6 +70,7 @@ export function EditingStep({
           title="Legal Editor"
           subtitle="Request changes or ask about clauses"
           placeholder="Ask about the document or request changes..."
+          showDeepResearch
           actions={
             <div className="flex items-center gap-2">
               <button

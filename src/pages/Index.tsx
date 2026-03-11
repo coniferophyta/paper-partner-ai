@@ -61,7 +61,7 @@ const Index = () => {
   }, []);
 
   const handleSendChatMessage = useCallback(
-    async (content: string) => {
+    async (content: string, deepResearch?: boolean) => {
       const userMessage: ChatMessage = { role: 'user', content };
       const allMessages = [...chatMessages, userMessage];
       setChatMessages(allMessages);
@@ -73,6 +73,7 @@ const Index = () => {
       try {
         await streamChat({
           documentText: documentText || undefined,
+          deepResearch,
           messages: [
             {
               role: 'system',
