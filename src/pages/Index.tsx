@@ -1,10 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { StepIndicator } from '@/components/StepIndicator';
 import { LandingStep } from '@/components/LandingStep';
 import { DocuWiseStep } from '@/components/DocuWiseStep';
 import { EditingStep } from '@/components/EditingStep';
 import { ReviewStep } from '@/components/ReviewStep';
 import { ChatMessage } from '@/components/ChatPanel';
+import { streamChat } from '@/lib/chat-service';
 import { toast } from 'sonner';
 
 const STEPS = ['Choose Type', 'Fill Details', 'Edit & Refine', 'Review'];
