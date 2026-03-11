@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { StepIndicator } from '@/components/StepIndicator';
 import { LandingStep } from '@/components/LandingStep';
 import { DocuWiseStep } from '@/components/DocuWiseStep';
