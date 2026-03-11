@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import mammoth from 'mammoth';
+import { asBlob } from 'html-docx-js-typescript';
 import { StepIndicator } from '@/components/StepIndicator';
 import { LandingStep } from '@/components/LandingStep';
 import { DocuWiseStep } from '@/components/DocuWiseStep';
@@ -144,10 +145,27 @@ ${documentHtml}` : ''}`;
     setCurrentStep(3);
   }, []);
 
-  const handleExport = useCallback(() => {
-    // TODO: Implement actual docx export
-    toast.info('Export functionality will be available once integrations are configured.');
-  }, []);
+  const handleExport = useCallback(async () => {
+    if (!documentHtml) {
+      toast.error('No document to export.');
+      return;
+    }
+
+    try {
+      const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:'Calibri',sans-serif;font-size:11pt;line-height:1.6;margin:2cm;}h1{font-size:16pt;font-weight:bold;}h2{font-size:14pt;font-weight:bold;}h3{font-size:12pt;font-weight:bold;}table{border-collapse:collapse;width:100%;}td,th{border:1px solid #999;padding:6px 10px;}</style></head><body>${documentHtml}</body></html>`;
+      const blob = await asBlob(fullHtml) as Blob;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'document.docx';
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Document downloaded');
+    } catch (err) {
+      console.error('Export error:', err);
+      toast.error('Failed to export document.');
+    }
+  }, [documentHtml, fileName]);
 
   const handleGoBack = useCallback(() => {
     if (currentStep > 1) setCurrentStep((s) => s - 1);
