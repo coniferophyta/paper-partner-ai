@@ -9,6 +9,60 @@ const corsHeaders = {
 const LITELLM_BASE_URL = "https://llm.505labs.ai";
 const TFL_BASE_URL = "https://www.tax-fin-lex.si/api/v1";
 
+const NDA_TEMPLATE = `NON-DISCLOSURE AGREEMENT TEMPLATE (DocuWise Form Template)
+
+1 PARTIES
+This Non-Disclosure Agreement ("Agreement") is entered into on {{ effective_date }} (the "Effective Date"), by and between:
+- Disclosing Party: company ({{ disclosing_company_name }}, reg. {{ disclosing_company_reg }}, address {{ disclosing_address }}, represented by {{ disclosing_representative }}) OR individual ({{ disclosing_name }}, address {{ disclosing_address }})
+- Receiving Party: company ({{ receiving_company_name }}, reg. {{ receiving_company_reg }}, address {{ receiving_address }}, represented by {{ receiving_representative }}) OR individual ({{ receiving_name }}, address {{ receiving_address }})
+
+2 PURPOSE
+The Parties agree to exchange certain confidential information for the purpose of {{ purpose_of_agreement }}.
+
+3 DEFINITION OF CONFIDENTIAL INFORMATION
+3.1 The Receiving Party agrees not to disclose, copy, clone, or modify any confidential information related to the Disclosing Party.
+3.2 "Confidential information" refers to any data/information related to the Disclosing Party, including discoveries, processes, techniques, programs, knowledge bases, customer lists, potential customers, business partners, affiliated partners, leads, know-how, or any other services.
+
+4 OBLIGATIONS OF THE RECEIVING PARTY
+4.1.1 Treat all Confidential Information as strictly confidential
+4.1.2 Not disclose to third parties except employees/collaborators who need access for Section 2 purpose
+4.1.3 Use information solely for Section 2 purpose
+4.1.4 Prevent unauthorized copying, reproduction, transmission or removal
+4.1.5 Implement appropriate technical and organizational security measures
+
+5 PERMITTED DISCLOSURES
+5.1.1 Required by law (court, tax authority)
+5.1.2 Written consent from Disclosing Party
+5.1.3 Necessary for legal proceedings/public administration, with prompt written notice to Disclosing Party
+
+6 RETURN OF CONFIDENTIAL INFORMATION
+Upon termination or request: return physical media, irreversibly destroy copies, erase digital versions.
+
+7 TERM
+Fixed term of {{ confidentiality_term_years }} years OR indefinite period while information remains secret.
+
+8 OWNERSHIP
+Not transferable without written consent of both Parties.
+
+9 LIQUIDATED DAMAGES
+{{ liquidated_damages_amount }} EUR per breach. Disclosing Party may claim actual damages exceeding liquidated damages.
+
+10 INDEMNIFICATION
+Receiving Party liable for all damages unless proves no fault or force majeure.
+
+11 GOVERNING LAW
+Governed by laws of {{ governing_law }}.
+
+12 TERMINATION
+Terminates when: term expires; Disclosing Party gives {{ termination_notice_days }} days' written notice. Confidentiality obligations survive termination.
+
+13 AMENDMENTS
+Modifications valid only if in writing and signed by both Parties.
+
+14 SIGNATURE AND DATE
+Both parties sign with company details or individual details as applicable.`;
+
+
 async function searchTFL(query: string, apiKey: string): Promise<string> {
   try {
     const response = await fetch(`${TFL_BASE_URL}/search?q=${encodeURIComponent(query)}&pageSize=5`, {
