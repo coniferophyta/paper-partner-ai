@@ -61,7 +61,7 @@ const Index = () => {
   }, []);
 
   const handleSendChatMessage = useCallback(
-    async (content: string) => {
+    async (content: string, deepResearch?: boolean) => {
       const userMessage: ChatMessage = { role: 'user', content };
       const allMessages = [...chatMessages, userMessage];
       setChatMessages(allMessages);
