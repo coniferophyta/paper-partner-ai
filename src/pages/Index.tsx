@@ -28,6 +28,12 @@ const Index = () => {
 
   const handleSelectDocType = useCallback((type: string) => {
     setDocType(type);
+    setChatMessages([
+      {
+        role: 'assistant',
+        content: `Welcome! I'm your **legal AI assistant** for creating a **${type.toUpperCase()}** document.\n\nWhile you fill in the form on the left, feel free to ask me:\n- 📋 What each field means legally\n- ⚖️ How to phrase specific clauses\n- 🔍 What terms to watch out for\n- 💡 Best practices for this document type\n\nI'm here to help — just type your question below.`,
+      },
+    ]);
     setCurrentStep(2);
   }, []);
 
@@ -39,6 +45,13 @@ const Index = () => {
       setDocumentHtml(htmlResult.value);
       setDocumentText(textResult.value);
       setFileName(name);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `Your document is loaded and ready for review! 📄\n\nYou can now:\n- 🔍 Ask me to **explain any clause** in the document\n- ✏️ Request **wording changes** or improvements\n- ⚠️ Ask me to **identify potential legal risks**\n- 📝 Request **additional clauses** to strengthen the agreement\n\nWhen you're satisfied, click **"Submit for Review"** in the top right.`,
+        },
+      ]);
       setCurrentStep(3);
       toast.success(`Document loaded — ready for editing`);
     } catch (err) {
@@ -62,7 +75,13 @@ const Index = () => {
           messages: [
             {
               role: 'system',
-              content: `You are a helpful legal AI assistant for creating ${docType.toUpperCase()} documents. Help the user understand legal terms, fill in fields, and review clauses. Be concise and professional.`,
+              content: `You are an expert legal AI assistant specializing in ${docType.toUpperCase()} documents and contract law. Your role:
+- Explain legal terminology in plain language
+- Advise on clause wording, enforceability, and common pitfalls
+- Flag potential legal risks or missing protections
+- Suggest standard legal provisions when relevant
+- Always note that you provide legal information, not legal advice, and recommend consulting a licensed attorney for binding decisions
+Be concise, professional, and precise. Use legal terminology where appropriate but always explain it.`,
             },
             ...allMessages,
           ],
