@@ -79,6 +79,10 @@ const Index = () => {
     toast.info('Export functionality will be available once integrations are configured.');
   }, []);
 
+  const handleGoBack = useCallback(() => {
+    if (currentStep > 1) setCurrentStep((s) => s - 1);
+  }, [currentStep]);
+
   const handleRestart = useCallback(() => {
     setCurrentStep(1);
     setDocType('');
