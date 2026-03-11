@@ -28,7 +28,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "global.anthropic.claude-sonnet-4-6",
         messages,
         stream,
       }),
