@@ -31,6 +31,7 @@ export function ChatPanel({
   showDeepResearch = false,
 }: ChatPanelProps) {
   const [input, setInput] = useState('');
+  const [deepResearch, setDeepResearch] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
