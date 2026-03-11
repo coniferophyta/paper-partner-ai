@@ -28,6 +28,12 @@ const Index = () => {
 
   const handleSelectDocType = useCallback((type: string) => {
     setDocType(type);
+    setChatMessages([
+      {
+        role: 'assistant',
+        content: `Welcome! I'm your **legal AI assistant** for creating a **${type.toUpperCase()}** document.\n\nWhile you fill in the form on the left, feel free to ask me:\n- 📋 What each field means legally\n- ⚖️ How to phrase specific clauses\n- 🔍 What terms to watch out for\n- 💡 Best practices for this document type\n\nI'm here to help — just type your question below.`,
+      },
+    ]);
     setCurrentStep(2);
   }, []);
 
