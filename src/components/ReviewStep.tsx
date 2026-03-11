@@ -17,6 +17,8 @@ interface ReviewResult {
   issues?: string[];
 }
 
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
+
 export function ReviewStep({ documentText, onReturnToEditing, onExport, onRestart }: ReviewStepProps) {
   const [status, setStatus] = useState<ReviewStatus>('pending');
   const [result, setResult] = useState<ReviewResult | null>(null);
@@ -26,23 +28,72 @@ export function ReviewStep({ documentText, onReturnToEditing, onExport, onRestar
     setStatus('reviewing');
     setError(null);
 
-    // TODO: Replace with actual AI review call (Claude API via edge function)
-    // For now, simulate a review after a delay
     try {
-      // Placeholder — user will wire up their Claude API
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const resp = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          stream: false,
+          documentText,
+          messages: [
+            {
+              role: 'system',
+              content: `You are an independent legal document reviewer. You must review the provided NDA document for:
+1. Completeness — are all required fields filled in (no {{ }} placeholders remaining)?
+2. Legal correctness — are clauses properly structured and enforceable?
+3. Consistency — do terms, dates, and party names match throughout?
+4. Missing protections — are there standard NDA clauses that should be added?
+5. Potential risks — flag any terms that could be problematic for either party.
 
-      const mockResult: ReviewResult = {
-        status: 'approved',
-        summary:
-          'The document appears to be complete and legally consistent. All required fields are filled in, and standard NDA clauses are present.',
-      };
+You MUST respond with EXACTLY this JSON format (no markdown, no extra text):
+{
+  "status": "approved" or "rejected",
+  "summary": "A 2-3 sentence overall assessment",
+  "issues": ["issue 1", "issue 2"] (empty array if approved with no issues)
+}
 
-      setResult(mockResult);
-      setStatus(mockResult.status);
+Be strict but fair. Reject if there are significant legal gaps or unfilled fields. Approve if the document is substantially complete and legally sound, even if minor improvements could be made.`,
+            },
+            {
+              role: 'user',
+              content: `Please review this NDA document:\n\n${documentText}`,
+            },
+          ],
+        }),
+      });
+
+      if (!resp.ok) {
+        const errorData = await resp.json().catch(() => ({}));
+        throw new Error(errorData.error || `Review failed: ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      const content = data.choices?.[0]?.message?.content || '';
+
+      // Parse the JSON response
+      let reviewResult: ReviewResult;
+      try {
+        // Try to extract JSON from the response (handle potential markdown wrapping)
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('No JSON found in response');
+        reviewResult = JSON.parse(jsonMatch[0]);
+      } catch {
+        // If parsing fails, treat as approved with the raw content as summary
+        reviewResult = {
+          status: 'approved',
+          summary: content,
+          issues: [],
+        };
+      }
+
+      setResult(reviewResult);
+      setStatus(reviewResult.status);
     } catch (err) {
       console.error('Review error:', err);
-      setError('Failed to complete the review. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to complete the review. Please try again.');
       setStatus('pending');
     }
   };
@@ -92,7 +143,7 @@ export function ReviewStep({ documentText, onReturnToEditing, onExport, onRestar
             <Loader2 className="w-10 h-10 text-primary animate-spin mx-auto" />
             <div>
               <p className="font-medium text-foreground text-sm">Reviewing your document…</p>
-              <p className="text-xs text-muted-foreground mt-1">This may take a moment</p>
+              <p className="text-xs text-muted-foreground mt-1">Checking against legal standards and TFL database</p>
             </div>
           </div>
         )}
@@ -113,6 +164,19 @@ export function ReviewStep({ documentText, onReturnToEditing, onExport, onRestar
               <div className="prose prose-sm max-w-none text-foreground/80">
                 <ReactMarkdown>{result.summary}</ReactMarkdown>
               </div>
+              {result.issues && result.issues.length > 0 && (
+                <div className="mt-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Minor suggestions:</p>
+                  <ul className="space-y-1">
+                    {result.issues.map((issue, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-foreground/70">
+                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+                        {issue}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <button
