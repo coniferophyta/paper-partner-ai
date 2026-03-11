@@ -1,6 +1,4 @@
 import { useState, useCallback, useRef } from 'react';
-import mammoth from 'mammoth';
-import { asBlob } from 'html-docx-js-typescript';
 import { StepIndicator } from '@/components/StepIndicator';
 import { LandingStep } from '@/components/LandingStep';
 import { DocuWiseStep } from '@/components/DocuWiseStep';
@@ -8,24 +6,54 @@ import { EditingStep } from '@/components/EditingStep';
 import { ReviewStep } from '@/components/ReviewStep';
 import { ChatMessage } from '@/components/ChatPanel';
 import { streamChat } from '@/lib/chat-service';
+import { parseDocx, DocumentParagraph } from '@/lib/doc-utils';
+import { TrackedChange, exportAsDocx } from '@/lib/export-utils';
 import { toast } from 'sonner';
 
 const STEPS = ['Choose Type', 'Fill Details', 'Edit & Refine', 'Review'];
+
+interface DocumentEdit {
+  paragraphId: string;
+  oldText: string;
+  newText: string;
+  explanation: string;
+}
+
+function parseEditsFromResponse(response: string, paragraphs: DocumentParagraph[]): { message: string; edits: DocumentEdit[] } {
+  const edits: DocumentEdit[] = [];
+  const editRegex = /```edit\s*\nPARAGRAPH_ID:\s*(para-\d+)\s*\nOLD:\s*([\s\S]*?)\nNEW:\s*([\s\S]*?)\n```/g;
+
+  let match;
+  while ((match = editRegex.exec(response)) !== null) {
+    const paragraphId = match[1].trim();
+    const oldText = match[2].trim();
+    const newText = match[3].trim();
+
+    const paragraph = paragraphs.find(p => p.id === paragraphId);
+    if (paragraph && paragraph.text.includes(oldText)) {
+      edits.push({ paragraphId, oldText, newText, explanation: '' });
+    }
+  }
+
+  const cleanMessage = response.replace(/```edit[\s\S]*?```/g, '').trim();
+  return { message: cleanMessage, edits };
+}
 
 const Index = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [docType, setDocType] = useState('');
 
-  // Chat state (shared context between steps 2 & 3)
+  // Chat state
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
 
-  // Document state for editing (step 3)
-  const [documentHtml, setDocumentHtml] = useState('');
-  const [documentText, setDocumentText] = useState('');
+  // Document state — paragraph-based for surgical editing
+  const [paragraphs, setParagraphs] = useState<DocumentParagraph[]>([]);
+  const [originalHtml, setOriginalHtml] = useState('');
   const [fileName, setFileName] = useState('');
-  const docBytesRef = useRef<ArrayBuffer | null>(null);
+  const [changes, setChanges] = useState<TrackedChange[]>([]);
+  const originalBytesRef = useRef<ArrayBuffer | null>(null);
 
   const handleSelectDocType = useCallback((type: string) => {
     setDocType(type);
@@ -40,21 +68,32 @@ const Index = () => {
 
   const handleDocuWiseComplete = useCallback(async (docBytes: ArrayBuffer, name: string) => {
     try {
-      docBytesRef.current = docBytes;
-      const htmlResult = await mammoth.convertToHtml({ arrayBuffer: docBytes });
-      const textResult = await mammoth.extractRawText({ arrayBuffer: docBytes });
-      setDocumentHtml(htmlResult.value);
-      setDocumentText(textResult.value);
+      const blob = new Blob([docBytes], {
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      });
+      const file = new File([blob], name, { type: blob.type });
+
+      const parsed = await parseDocx(file);
+      if (parsed.paragraphs.length === 0) {
+        toast.error('Could not extract text from the document.');
+        return;
+      }
+
+      originalBytesRef.current = parsed.originalBytes;
+      setParagraphs(parsed.paragraphs);
+      setOriginalHtml(parsed.html);
       setFileName(name);
+      setChanges([]);
+
       setChatMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: `Your document is loaded and ready for review! 📄\n\nYou can now:\n- 🔍 Ask me to **explain any clause** in the document\n- ✏️ Request **wording changes** or improvements\n- ⚠️ Ask me to **identify potential legal risks**\n- 📝 Request **additional clauses** to strengthen the agreement\n\nWhen you're satisfied, click **"Submit for Review"** in the top right.`,
+          content: `Your document is loaded and ready for editing! 📄 (${parsed.paragraphs.length} paragraphs)\n\nYou can now:\n- 🔍 Ask me to **explain any clause** in the document\n- ✏️ Request **wording changes** or improvements\n- ⚠️ Ask me to **identify potential legal risks**\n- 📝 Request **additional clauses** to strengthen the agreement\n\nWhen you're satisfied, click **"Submit for Review"** in the top right.`,
         },
       ]);
       setCurrentStep(3);
-      toast.success(`Document loaded — ready for editing`);
+      toast.success(`Document loaded — ${parsed.paragraphs.length} paragraphs ready for editing`);
     } catch (err) {
       console.error('Failed to parse docx:', err);
       toast.error('Failed to parse the document.');
@@ -71,7 +110,12 @@ const Index = () => {
 
       let assistantSoFar = '';
 
-      // Build system prompt — include document HTML in step 3 so AI can edit it
+      // Build document context from paragraphs
+      const docContent = paragraphs.length > 0
+        ? paragraphs.map(p => `[${p.id}]: ${p.text}`).join('\n\n')
+        : '';
+      const documentText = paragraphs.map(p => p.text).join('\n');
+
       const systemContent = `You are an expert legal AI assistant specializing in ${docType.toUpperCase()} documents and contract law. Your role:
 - Explain legal terminology in plain language
 - Advise on clause wording, enforceability, and common pitfalls
@@ -80,17 +124,26 @@ const Index = () => {
 - Always note that you provide legal information, not legal advice, and recommend consulting a licensed attorney for binding decisions
 Be concise, professional, and precise. Use legal terminology where appropriate but always explain it.
 
-${documentHtml ? `IMPORTANT — DOCUMENT EDITING CAPABILITY:
-You have access to the current document HTML below. When the user asks you to make changes, edits, additions, or deletions to the document, you MUST include the FULL updated document HTML wrapped in <document-update> tags in your response. Only include the inner HTML content (what goes inside the document body), not full HTML boilerplate.
+${docContent ? `DOCUMENT CONTENT (each paragraph has an ID in brackets):
+${docContent}
 
-Example response when editing:
-"I've updated the confidentiality term from 3 years to 5 years."
-<document-update>
-...full updated document HTML here...
-</document-update>
+EDITING RULES:
+1. When the user asks you to explain something, explain it in simple, clear language.
+2. When the user asks you to edit/change/modify the document, respond with your explanation AND include edit commands.
+3. For edits, you MUST use this exact format in your response - include one or more EDIT blocks:
 
-CURRENT DOCUMENT HTML:
-${documentHtml}` : ''}`;
+\`\`\`edit
+PARAGRAPH_ID: para-X
+OLD: exact text to find in that paragraph
+NEW: replacement text
+\`\`\`
+
+4. Only edit the specific parts that need changing. Keep everything else exactly as is.
+5. The OLD text must be an EXACT substring of the paragraph text. Match it precisely including punctuation and spacing.
+6. You can include multiple edit blocks for multiple changes.
+7. Always explain what you changed and why after the edit blocks.
+8. If the user's request is unclear, ask clarifying questions before making edits.
+9. Be helpful and proactive - suggest improvements when you see issues.` : ''}`;
 
       try {
         await streamChat({
@@ -102,27 +155,49 @@ ${documentHtml}` : ''}`;
           ],
           onDelta: (chunk) => {
             assistantSoFar += chunk;
-            // Show streaming content but strip document-update tags from display
-            const displayContent = assistantSoFar.replace(/<document-update>[\s\S]*?<\/document-update>/g, '').replace(/<document-update>[\s\S]*/g, '');
+            // Strip edit blocks from streaming display
+            const displayContent = assistantSoFar.replace(/```edit[\s\S]*?```/g, '✏️ *Applying edit...*').replace(/```edit[\s\S]*$/g, '✏️ *Preparing edit...*');
             setStreamingContent(displayContent.trim());
           },
           onDone: () => {
             setStreamingContent('');
 
-            // Extract document update if present
-            const updateMatch = assistantSoFar.match(/<document-update>([\s\S]*?)<\/document-update>/);
-            if (updateMatch) {
-              const newHtml = updateMatch[1].trim();
-              setDocumentHtml(newHtml);
-              toast.success('Document updated');
-            }
+            // Parse edits from response
+            const { message, edits } = parseEditsFromResponse(assistantSoFar, paragraphs);
 
-            // Remove the tags from the displayed message
-            const cleanContent = assistantSoFar.replace(/<document-update>[\s\S]*?<\/document-update>/g, '').trim();
+            if (edits.length > 0) {
+              // Apply edits to paragraphs
+              setParagraphs(prev => {
+                const updated = [...prev];
+                for (const edit of edits) {
+                  const idx = updated.findIndex(p => p.id === edit.paragraphId);
+                  if (idx !== -1) {
+                    updated[idx] = {
+                      ...updated[idx],
+                      text: updated[idx].text.replace(edit.oldText, edit.newText),
+                    };
+                  }
+                }
+                return updated;
+              });
+
+              // Track changes for export
+              const newChanges: TrackedChange[] = edits.map((edit, i) => ({
+                id: `change-${Date.now()}-${i}`,
+                paragraphId: edit.paragraphId,
+                oldText: edit.oldText,
+                newText: edit.newText,
+                explanation: edit.explanation,
+                applied: true,
+                timestamp: Date.now(),
+              }));
+              setChanges(prev => [...prev, ...newChanges]);
+              toast.success(`Applied ${edits.length} change(s) to document`);
+            }
 
             setChatMessages((prev) => [
               ...prev,
-              { role: 'assistant', content: cleanContent },
+              { role: 'assistant', content: message },
             ]);
             setIsChatLoading(false);
           },
@@ -134,7 +209,7 @@ ${documentHtml}` : ''}`;
         setIsChatLoading(false);
       }
     },
-    [chatMessages, docType, documentText, documentHtml]
+    [chatMessages, docType, paragraphs]
   );
 
   const handleSubmitForReview = useCallback(() => {
@@ -146,26 +221,19 @@ ${documentHtml}` : ''}`;
   }, []);
 
   const handleExport = useCallback(async () => {
-    if (!documentHtml) {
+    if (!originalBytesRef.current) {
       toast.error('No document to export.');
       return;
     }
 
     try {
-      const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:'Calibri',sans-serif;font-size:11pt;line-height:1.6;margin:2cm;}h1{font-size:16pt;font-weight:bold;}h2{font-size:14pt;font-weight:bold;}h3{font-size:12pt;font-weight:bold;}table{border-collapse:collapse;width:100%;}td,th{border:1px solid #999;padding:6px 10px;}</style></head><body>${documentHtml}</body></html>`;
-      const blob = await asBlob(fullHtml) as Blob;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName || 'document.docx';
-      a.click();
-      URL.revokeObjectURL(url);
+      await exportAsDocx(originalBytesRef.current, changes, fileName);
       toast.success('Document downloaded');
     } catch (err) {
       console.error('Export error:', err);
       toast.error('Failed to export document.');
     }
-  }, [documentHtml, fileName]);
+  }, [changes, fileName]);
 
   const handleGoBack = useCallback(() => {
     if (currentStep > 1) setCurrentStep((s) => s - 1);
@@ -175,10 +243,14 @@ ${documentHtml}` : ''}`;
     setCurrentStep(1);
     setDocType('');
     setChatMessages([]);
-    setDocumentHtml('');
-    setDocumentText('');
+    setParagraphs([]);
+    setOriginalHtml('');
     setFileName('');
+    setChanges([]);
+    originalBytesRef.current = null;
   }, []);
+
+  const documentText = paragraphs.map(p => p.text).join('\n');
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -198,10 +270,12 @@ ${documentHtml}` : ''}`;
           />
         )}
 
-        {currentStep === 3 && (
+        {currentStep === 3 && originalBytesRef.current && (
           <EditingStep
-            documentHtml={documentHtml}
+            originalBytes={originalBytesRef.current}
+            originalHtml={originalHtml}
             fileName={fileName}
+            changes={changes}
             chatMessages={chatMessages}
             isChatLoading={isChatLoading}
             streamingContent={streamingContent}
