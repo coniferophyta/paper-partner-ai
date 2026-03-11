@@ -94,7 +94,7 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <StepIndicator currentStep={currentStep} steps={STEPS} />
+      <StepIndicator currentStep={currentStep} steps={STEPS} onBack={handleGoBack} />
 
       <div className="flex-1 flex min-h-0">
         {currentStep === 1 && <LandingStep onSelectDocType={handleSelectDocType} />}
