@@ -45,6 +45,13 @@ const Index = () => {
       setDocumentHtml(htmlResult.value);
       setDocumentText(textResult.value);
       setFileName(name);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: `Your document is loaded and ready for review! 📄\n\nYou can now:\n- 🔍 Ask me to **explain any clause** in the document\n- ✏️ Request **wording changes** or improvements\n- ⚠️ Ask me to **identify potential legal risks**\n- 📝 Request **additional clauses** to strengthen the agreement\n\nWhen you're satisfied, click **"Submit for Review"** in the top right.`,
+        },
+      ]);
       setCurrentStep(3);
       toast.success(`Document loaded — ready for editing`);
     } catch (err) {
