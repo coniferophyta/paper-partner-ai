@@ -161,6 +161,9 @@ serve(async (req) => {
       if (msg.role === "system") {
         let enrichedContent = msg.content;
 
+        // Always include the NDA template as reference
+        enrichedContent += `\n\n---\nNDA DOCUMENT TEMPLATE REFERENCE (this is the template the user is filling out in DocuWise):\n${NDA_TEMPLATE}\n\nUse this template to understand the document structure, explain fields the user needs to fill in (marked with {{ }}), and advise on clause-specific legal implications.`;
+
         if (tflContext) {
           enrichedContent += `\n\n---\nRELEVANT LEGAL SOURCES FROM TAX-FIN-LEX DATABASE (Slovenian law):\n${tflContext}\n\nUse these sources to ground your answers. Cite them when relevant (e.g., "According to [source title]..."). Always provide the source URL when referencing legislation or court decisions.`;
         }
