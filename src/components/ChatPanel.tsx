@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Globe } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 export interface ChatMessage {
@@ -11,11 +11,12 @@ interface ChatPanelProps {
   messages: ChatMessage[];
   isLoading: boolean;
   streamingContent: string;
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, deepResearch?: boolean) => void;
   placeholder?: string;
   title?: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  showDeepResearch?: boolean;
 }
 
 export function ChatPanel({
