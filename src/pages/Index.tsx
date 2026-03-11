@@ -42,29 +42,43 @@ const Index = () => {
   const handleSendChatMessage = useCallback(
     async (content: string) => {
       const userMessage: ChatMessage = { role: 'user', content };
-      setChatMessages((prev) => [...prev, userMessage]);
+      const allMessages = [...chatMessages, userMessage];
+      setChatMessages(allMessages);
       setIsChatLoading(true);
       setStreamingContent('');
 
-      // TODO: Replace with actual Claude API call via edge function
-      // Placeholder response
+      let assistantSoFar = '';
+
       try {
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        const assistantMessage: ChatMessage = {
-          role: 'assistant',
-          content:
-            'I\'m the AI assistant placeholder. Once you connect your Claude API, I\'ll be able to help you with your document. For now, the chat interface is ready and working!',
-        };
-        setChatMessages((prev) => [...prev, assistantMessage]);
+        await streamChat({
+          messages: [
+            {
+              role: 'system',
+              content: `You are a helpful legal AI assistant for creating ${docType.toUpperCase()} documents. Help the user understand legal terms, fill in fields, and review clauses. Be concise and professional.`,
+            },
+            ...allMessages,
+          ],
+          onDelta: (chunk) => {
+            assistantSoFar += chunk;
+            setStreamingContent(assistantSoFar);
+          },
+          onDone: () => {
+            setStreamingContent('');
+            setChatMessages((prev) => [
+              ...prev,
+              { role: 'assistant', content: assistantSoFar },
+            ]);
+            setIsChatLoading(false);
+          },
+        });
       } catch (err) {
         console.error(err);
-        toast.error('Failed to get AI response.');
-      } finally {
-        setIsChatLoading(false);
+        toast.error(err instanceof Error ? err.message : 'Failed to get AI response.');
         setStreamingContent('');
+        setIsChatLoading(false);
       }
     },
-    []
+    [chatMessages, docType]
   );
 
   const handleSubmitForReview = useCallback(() => {
