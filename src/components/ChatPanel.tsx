@@ -44,8 +44,9 @@ export function ChatPanel({
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
-    onSendMessage(input.trim());
+    onSendMessage(input.trim(), deepResearch);
     setInput('');
+    setDeepResearch(false);
     if (inputRef.current) inputRef.current.style.height = 'auto';
   };
 
