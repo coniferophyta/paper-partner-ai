@@ -4,6 +4,7 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 interface StreamChatOptions {
   messages: ChatMessage[];
+  documentText?: string;
   onDelta: (text: string) => void;
   onDone: () => void;
 }
