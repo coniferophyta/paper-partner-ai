@@ -53,7 +53,7 @@ export function DocuWiseStep({
         throw new Error('No documents found. Please submit the form first, then try again.');
       }
 
-      const latestDoc = docList[0];
+      const latestDoc = docList[docList.length - 1];
       const documentId = latestDoc.id || latestDoc.document_id;
 
       // Step 2: Download the document
