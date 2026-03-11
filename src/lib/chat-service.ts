@@ -9,14 +9,17 @@ interface StreamChatOptions {
   onDone: () => void;
 }
 
-export async function streamChat({ messages, onDelta, onDone }: StreamChatOptions) {
+export async function streamChat({ messages, documentText, onDelta, onDone }: StreamChatOptions) {
+  const body: any = { messages };
+  if (documentText) body.documentText = documentText;
+
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify(body),
   });
 
   if (!resp.ok || !resp.body) {
