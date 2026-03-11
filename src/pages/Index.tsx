@@ -106,7 +106,7 @@ Be concise, professional, and precise. Use legal terminology where appropriate b
         setIsChatLoading(false);
       }
     },
-    [chatMessages, docType]
+    [chatMessages, docType, documentText]
   );
 
   const handleSubmitForReview = useCallback(() => {
