@@ -24,6 +24,7 @@ const Index = () => {
   const [documentHtml, setDocumentHtml] = useState('');
   const [documentText, setDocumentText] = useState('');
   const [fileName, setFileName] = useState('');
+  const docBytesRef = useRef<ArrayBuffer | null>(null);
 
   const handleSelectDocType = useCallback((type: string) => {
     setDocType(type);
