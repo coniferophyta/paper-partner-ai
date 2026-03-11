@@ -7,7 +7,7 @@ interface EditingStepProps {
   chatMessages: ChatMessage[];
   isChatLoading: boolean;
   streamingContent: string;
-  onSendChatMessage: (message: string) => void;
+  onSendChatMessage: (message: string, deepResearch?: boolean) => void;
   onSubmitForReview: () => void;
   onExport: () => void;
 }
