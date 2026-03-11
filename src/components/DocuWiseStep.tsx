@@ -7,7 +7,7 @@ interface DocuWiseStepProps {
   chatMessages: ChatMessage[];
   isChatLoading: boolean;
   streamingContent: string;
-  onSendChatMessage: (message: string) => void;
+  onSendChatMessage: (message: string, deepResearch?: boolean) => void;
   onDocuWiseComplete: (docBytes: ArrayBuffer, fileName: string) => void;
 }
 
