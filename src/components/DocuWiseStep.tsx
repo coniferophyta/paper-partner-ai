@@ -17,8 +17,7 @@ export function DocuWiseStep({
   onSendChatMessage,
   onDocuWiseComplete,
 }: DocuWiseStepProps) {
-  // Placeholder DocuWise iframe URL — user will configure this
-  const docuWiseUrl = `about:blank#docuwise-${docType}`;
+  const docuWiseUrl = 'https://app.docuwise.eu/en/share/4a65057f-5248-4e52-9fe2-239269626851';
 
   return (
     <div className="flex-1 flex h-full min-h-0">
