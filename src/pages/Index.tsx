@@ -79,6 +79,10 @@ const Index = () => {
     toast.info('Export functionality will be available once integrations are configured.');
   }, []);
 
+  const handleGoBack = useCallback(() => {
+    if (currentStep > 1) setCurrentStep((s) => s - 1);
+  }, [currentStep]);
+
   const handleRestart = useCallback(() => {
     setCurrentStep(1);
     setDocType('');
@@ -90,7 +94,7 @@ const Index = () => {
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      <StepIndicator currentStep={currentStep} steps={STEPS} />
+      <StepIndicator currentStep={currentStep} steps={STEPS} onBack={handleGoBack} />
 
       <div className="flex-1 flex min-h-0">
         {currentStep === 1 && <LandingStep onSelectDocType={handleSelectDocType} />}
