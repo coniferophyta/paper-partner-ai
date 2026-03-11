@@ -76,10 +76,25 @@ Be strict but fair. Reject if there are significant legal gaps or unfilled field
       // Parse the JSON response
       let reviewResult: ReviewResult;
       try {
-        // Try to extract JSON from the response (handle potential markdown wrapping)
         const jsonMatch = content.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('No JSON found in response');
-        reviewResult = JSON.parse(jsonMatch[0]);
+        const parsed = JSON.parse(jsonMatch[0]);
+        
+        // Normalize issues to strings (API may return objects with issue/clause fields)
+        const issues = (parsed.issues || []).map((issue: any) => {
+          if (typeof issue === 'string') return issue;
+          const parts: string[] = [];
+          if (issue.severity) parts.push(`[${issue.severity.toUpperCase()}]`);
+          if (issue.clause) parts.push(`${issue.clause}:`);
+          parts.push(issue.issue || issue.description || JSON.stringify(issue));
+          return parts.join(' ');
+        });
+
+        reviewResult = {
+          status: parsed.status === 'rejected' ? 'rejected' : 'approved',
+          summary: parsed.summary,
+          issues,
+        };
       } catch {
         // If parsing fails, treat as approved with the raw content as summary
         reviewResult = {
